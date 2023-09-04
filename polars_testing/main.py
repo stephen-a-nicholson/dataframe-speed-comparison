@@ -2,8 +2,7 @@
 
 import argparse
 import logging
-import polars as pl
-from polars_testing.polars_example import polars_transformations
+from polars_testing.polars_example import PolarsExample
 
 logging.basicConfig(filename="timings.log", level=logging.INFO)
 
@@ -16,8 +15,8 @@ args = parser.parse_args()
 
 def main() -> None:
     """Test timings of polars"""
-    res: pl.DataFrame = polars_transformations(input_path=args.input_path)
-    print(res.head())
+    res: PolarsExample = PolarsExample(input_path=args.input_path)
+    res.filter_data(filter_column="test", filter_value=2000)
 
 
 if __name__ == "__main__":
