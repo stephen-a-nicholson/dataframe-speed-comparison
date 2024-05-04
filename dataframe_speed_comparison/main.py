@@ -1,7 +1,7 @@
 """
 Dataframe Speed Comparison
 
-This module compares the performance of DuckDB, Polars, and Pandas using a large dataset.
+This module compares the performance of DuckDB, Polars, and Pandas using a large and complex dataset.
 """
 
 import time
@@ -12,37 +12,49 @@ import polars as pl
 import numpy as np
 import matplotlib.pyplot as plt
 
+# Resource management for DuckDB
+duckdb_config = {
+    "memory_limit": "4GB",  # Setting a memory limit of 4GB
+    "threads": 4,  # Limit DuckDB to use up to 4 threads
+}
 
-def filter_operation(
+
+def configure_duckdb():
+    con = duckdb.connect(config=duckdb_config)
+    return con
+
+
+def complex_operations(
     df: pd.DataFrame, pdf: pl.DataFrame
 ) -> Tuple[float, float, float]:
     """
-    Perform a simple filtering operation on the provided DataFrames.
+    Perform complex operations (filter, join, aggregation) on the provided DataFrames.
 
     Args:
         df (pd.DataFrame): Pandas DataFrame.
         pdf (pl.DataFrame): Polars DataFrame.
 
     Returns:
-        Tuple[float, float, float]: Time taken by DuckDB, Polars, and Pandas to perform the filtering operation.
+        Tuple[float, float, float]: Time taken by DuckDB, Polars, and Pandas to perform the operations.
     """
-    # DuckDB
-    con = duckdb.connect(":memory:")
+    con = configure_duckdb()
     con.register("df", df)
+
+    # DuckDB Operations
     start_time = time.time()
-    duckdb_result = con.execute(
-        "SELECT COUNT(*) FROM df WHERE A > 50"
+    _ = con.execute(
+        "SELECT C, COUNT(*) FROM df GROUP BY C"
     ).fetchall()
     duckdb_time = time.time() - start_time
 
-    # Polars
+    # Polars Operations
     start_time = time.time()
-    polars_result = pdf.filter(pdf["A"] > 50)
+    _ = pdf.groupby("C").agg(pl.count())
     polars_time = time.time() - start_time
 
-    # Pandas
+    # Pandas Operations
     start_time = time.time()
-    pandas_result = df[df["A"] > 50]
+    _ = df.groupby("C").size()
     pandas_time = time.time() - start_time
 
     return duckdb_time, polars_time, pandas_time
@@ -90,18 +102,19 @@ def generate_graph(labels: List[str], times: List[float]) -> None:
 
 
 if __name__ == "__main__":
-    # Generate a large dataset
-    num_rows = 10**6
+    # Generate a larger and more complex dataset
+    num_rows = 10**7
     data = {
         "A": np.random.randint(0, 100, size=num_rows),
         "B": np.random.rand(num_rows),
         "C": np.random.choice(["X", "Y", "Z"], num_rows),
+        "D": np.random.normal(0, 1, num_rows),
     }
     df = pd.DataFrame(data)
     pdf = pl.DataFrame(data)
 
-    # Measure the time taken by each library
-    duckdb_time, polars_time, pandas_time = filter_operation(df, pdf)
+    # Measure the time taken by each library for complex operations
+    duckdb_time, polars_time, pandas_time = complex_operations(df, pdf)
 
     # Generate graphs
     labels = ["DuckDB", "Polars", "Pandas"]
